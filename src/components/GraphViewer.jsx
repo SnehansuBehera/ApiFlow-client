@@ -1,10 +1,10 @@
-import React, { useEffect, useRef } from "react";
+import React, { useEffect, useRef} from "react";
 import * as d3 from "d3";
 
 export default function GraphViewer({ graph }) {
   const svgRef = useRef();
-
   useEffect(() => {
+
     if (!graph?.nodes || !graph?.edges) return;
 
     const width = window.innerWidth * 0.75;
@@ -70,14 +70,12 @@ export default function GraphViewer({ graph }) {
     node
       .append("rect")
       .attr("width", 160)
-      .attr("height", 100)
-      .attr("x", -80) // center rect at (x,y)
+      .attr("height", 80)
+      .attr("x", -80)
       .attr("y", -50)
       .attr("rx", 12)
-      .attr("fill", "#1e3a8a") // Tailwind blue-900
-      .attr("stroke", "#60a5fa") // Tailwind blue-400
-      .attr("stroke-width", 2)
-      .attr("class", "shadow-lg");
+      .attr("fill", "#F9F6F3")
+      .style("filter", "drop-shadow(3px 5px 8px rgba(0,0,0,0.5))");
 
     // Wrapped text inside square using foreignObject
     node
@@ -85,11 +83,11 @@ export default function GraphViewer({ graph }) {
       .attr("x", -75)
       .attr("y", -45)
       .attr("width", 150)
-      .attr("height", 90)
+      .attr("height", 70)
       .append("xhtml:div")
       .style("width", "150px")
-      .style("height", "90px")
-      .style("color", "#f9fafb") // text color (gray-50)
+      .style("height", "70px")
+      .style("color", "#393E46")
       .style("font-size", "12px")
       .style("display", "flex")
       .style("flex-direction", "column")
@@ -98,16 +96,65 @@ export default function GraphViewer({ graph }) {
       .style("text-align", "center")
       .style("overflow-wrap", "break-word")
       .style("word-break", "break-word")
-      .html(
-        (d) =>
-          `<div style="font-weight:600; margin-bottom:4px;">${d.snippet || d.label || d.id}</div>
-           <div><a href="${d.url || "#"}" target="_blank" style="color:#93c5fd; text-decoration:underline; font-size:11px;">
-             ${d.url ? d.url.replace(/^https?:\/\//, "").slice(0, 22) + "…" : ""}
-           </a></div>`
-      );
+      .html((d) => {
+        let displayUrl = "";
+        if (d.data.url) {
+          try {
+            const urlObj = new URL(d.data.url, window.location.origin);
+            const parts = urlObj.pathname.split("/").filter(Boolean);
+            displayUrl = "/" + (parts.pop() || "");
+          } catch {
+            displayUrl = d.data.url;
+          }
+        }
 
-    // Tooltip fallback
-    node.append("title").text((d) => d.label || d.id);
+        return `
+          <div style="font-weight:700;font-size:20px; margin-bottom:4px;">
+            ${d.data.method || "N/A"}
+          </div>
+          <div>
+            <a href="${d.data.url || "#"}" target="_blank" 
+               style="color:#393E46; font-weight:500; font-size:14px;">
+              ${displayUrl || "No URL"}
+            </a>
+          </div>`;
+      });
+
+    // Tooltip div
+    const tooltip = d3
+      .select("#tooltip")
+      .style("position", "absolute")
+      .style("pointer-events", "none");
+
+    // Show tooltip
+    node.on("mouseenter", function (event, d) {
+      let table = `
+        <table class="table-auto text-xs text-gray-700 w-full">
+          <tbody>
+            <tr><td class="font-medium pr-2 text-gray-500">Method:</td><td>${d.data.method || "N/A"}</td></tr>
+            <tr><td class="font-medium pr-2 text-gray-500">URL:</td>
+                <td style="word-break:break-all;overflow-wrap:anywhere;">${d.data.url || "N/A"}</td></tr>
+           
+          </tbody>
+        </table>
+      `;
+
+      tooltip
+        .html(table)
+        .style("left", event.pageX + 0 + "px")
+        .style("top", event.pageY - 10 + "px")
+        .classed("hidden", false);
+    });
+
+    node.on("mousemove", function (event) {
+      tooltip
+        .style("left", event.pageX + 0 + "px")
+        .style("top", event.pageY - 10 + "px");
+    });
+
+    node.on("mouseleave", function () {
+      tooltip.classed("hidden", true);
+    });
 
     // Tick simulation
     simulation.on("tick", () => {
@@ -122,8 +169,19 @@ export default function GraphViewer({ graph }) {
   }, [graph]);
 
   return (
-    <div className="bg-gray-900 p-4 rounded-2xl shadow-lg">
-      <svg ref={svgRef} className="w-full h-[80vh]"></svg>
+    <div className="bg-gray-200 rounded-2xl w-full relative overflow-hidden inset-shadow">
+      <img
+        src="pallet.png"
+        alt="bg-pallet"
+        className="w-full h-full absolute top-0 left-0 object-cover z-0 opacity-10"
+      />
+
+      <svg ref={svgRef} className="w-full h-[80vh] relative z-10"></svg>
+
+      <div
+        id="tooltip"
+        className="hidden absolute bg-white/95 backdrop-blur-md border border-gray-300 rounded-xl shadow-2xl p-4 text-sm z-50 max-w-sm"
+      ></div>
     </div>
   );
 }

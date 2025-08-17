@@ -1,14 +1,25 @@
-import React, { useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import GraphViewer from "./components/GraphViewer";
 import FileUpload from "./components/FileUpload";
+import { GrPowerReset } from "react-icons/gr";
+const baseUrl = import.meta.env.VITE_BASE_URL;
 
 export default function App() {
   const [graph, setGraph] = useState(null);
   const [graphId, setGraphId] = useState("");
-
+  console.log(baseUrl)
+  const handleReset = () => {
+    setGraph(null);
+    setGraphId("");
+    localStorage.removeItem("graphId");
+  }
   useEffect(() => {
+    const storedGraphId = localStorage.getItem("graphId");
+    if (storedGraphId) {
+      setGraphId(storedGraphId);
+    }
     const fetchGraph = async () => {
-    const res = await fetch(`http://localhost:5000/api/graph/${graphId}`);
+    const res = await fetch(`${baseUrl}/api/graph/${graphId}`);
     const data = await res.json();
     setGraph(data.graph);
     };
@@ -20,41 +31,30 @@ export default function App() {
 
 
   return (
-    <div className="min-h-screen bg-gray-950 text-white flex">
-      {/* Sidebar */}
-      <div className="w-1/4 bg-gray-800 p-6 border-r border-gray-700 flex flex-col">
-        <h1 className="text-2xl font-bold mb-4">API EXPLORER</h1>
-
-        {/* Load existing graph */}
-        {/* <input
-          type="text"
-          placeholder="Enter Graph ID"
-          value={graphId}
-          onChange={(e) => setGraphId(e.target.value)}
-          className="w-full p-2 rounded bg-gray-700 text-white"
-        /> */}
-
-        {/* Upload new graph */}
+    <div className="min-h-screen bg-gray-100 text-white flex">
+      <div className="w-1/4 h-[80vh] my-auto ml-10 mr-4 bg-gray-800 rounded-2xl p-6 border-r border-gray-700 flex flex-col">
+        <div className="flex items-center justify-between mb-6">
+          <h1 className="text-2xl font-bold">API VISUALISER</h1>
+          <GrPowerReset onClick={handleReset} className="text-white text-lg"/>
+          </div>
         <FileUpload
           onUploadComplete={(data) => {
             setGraph(data.graph);
             setGraphId(data.savedId);
           }}
         />
-        {/* <button
-          onClick={fetchGraph}
-          className="mt-3 w-full py-2 bg-blue-600 hover:bg-blue-500 rounded-lg shadow-md"
-        >
-          Load Graph
-        </button> */}
       </div>
 
-      {/* Graph Area */}
-      <div className="flex-1 flex items-center justify-center">
+      <div className="flex-1 flex items-center justify-center h-[80vh] my-auto mr-10 rounded-2xl w-full relative overflow-hidden inset-shadow">
+      <img
+        src="pallet.png"
+        alt="bg-pallet"
+        className="w-full absolute top-0 left-0 object-cover z-0 opacity-10"
+      />
         {graph ? (
           <GraphViewer graph={graph} />
         ) : (
-          <p className="text-gray-400">Enter a Graph ID or upload a file to visualize</p>
+          <p className="text-gray-400 font-semibold text-lg">Upload a file or .zip to visualize</p>
         )}
       </div>
     </div>

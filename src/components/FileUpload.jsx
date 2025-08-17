@@ -1,27 +1,37 @@
-import React, { useState, useRef } from "react";
+import { useState, useRef} from "react";
+const baseUrl = import.meta.env.VITE_BASE_URL;
 
 export default function FileUpload({ onUploadComplete }) {
   const [dragging, setDragging] = useState(false);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [fileName, setFileName] = useState("");
+  // const [graphId, setGraphId] = useState("");
   const fileInputRef = useRef(null);
 
   const uploadFile = async (file) => {
     if (!file) return;
-
+    const storedGraphId = localStorage.getItem("graphId");
     setError("");
     setLoading(true);
-    console.log(file)
     try {
       const formData = new FormData();
+      console.log(storedGraphId)
       formData.append("project", file);
+      if (storedGraphId) {
+        formData.append("graphId", storedGraphId);
+       }
       console.log(formData)
-      const res = await fetch("http://localhost:5000/api/scan/upload", {
+      const res = await fetch(`${baseUrl}/api/scan/upload`, {
         method: "POST",
         body: formData,
       });
 
       const data = await res.json();
+      if (!storedGraphId) {
+             localStorage.setItem("graphId", data.savedId);
+      }
+      setFileName(file.name);
       if (!res.ok) throw new Error(data.error || "Upload failed");
 
       onUploadComplete(data);
@@ -61,12 +71,19 @@ export default function FileUpload({ onUploadComplete }) {
           Uploading & Building Graph...
         </p>
       ) : (
-        <p className="text-gray-300">
-          Click or Drag & Drop a <span className="text-blue-400">.zip</span> or
-          file here
-        </p>
-      )}
-      {error && <p className="text-red-400 mt-2">{error}</p>}
+          fileName ? (
+            <div>
+                <div className="flex items-center justify-center gap-2 mb-3">
+                  <img src="folder.png" alt="folder" className="w-5"/>
+                  <p className="text-blue-300">{fileName}</p>
+              </div>
+              <p className="text-sm underline font-seminold">add more files</p>
+              </div>
+            ) : (
+              <p className="text-gray-300">Click or Drag & Drop a file here</p>
+            )
+          )}
+      {error && <p className="text-red-400 mt-2">Failed to upload</p>}
 
       {/* Hidden input for click */}
       <input
